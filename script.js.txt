@@ -1,0 +1,200 @@
+const form = document.getElementById("resultForm");
+const result = document.getElementById("result");
+
+const subjects = [
+    "maths",
+    "science",
+    "english",
+    "social",
+    "computer"
+];
+
+// Calculate total marks using a loop
+function calculateTotal(marks) {
+    let total = 0;
+
+    for (let i = 0; i < marks.length; i++) {
+        total += marks[i];
+    }
+
+    return total;
+}
+
+// Find grade using switch
+function getGrade(percentage) {
+    switch (Math.floor(percentage / 10)) {
+        case 10:
+        case 9:
+            return "A+";
+
+        case 8:
+            return "A";
+
+        case 7:
+            return "B";
+
+        case 6:
+            return "C";
+
+        case 5:
+            return "D";
+
+        default:
+            return "E";
+    }
+}
+
+// Validate individual fields
+function validateField(field) {
+    const value = field.value.trim();
+    let error = "";
+
+    if (field.id === "name") {
+        if (value.length < 3) {
+            error = "Enter the student's name (at least 3 characters)";
+        }
+    } else if (field.id === "roll") {
+        if (value === "") {
+            error = "Enter the roll number";
+        }
+    } else {
+        const mark = Number(value);
+
+        if (
+            value === "" ||
+            !Number.isFinite(mark) ||
+            mark < 0 ||
+            mark > 100
+        ) {
+            error = "Enter marks from 0 to 100";
+        }
+    }
+
+    const feedback = field.nextElementSibling;
+
+    if (error !== "") {
+        field.classList.add("is-invalid");
+        field.classList.remove("is-valid");
+        feedback.textContent = error;
+        return false;
+    }
+
+    field.classList.remove("is-invalid");
+    field.classList.add("is-valid");
+    feedback.textContent = "";
+
+    return true;
+}
+
+// Check all fields
+function validateForm() {
+    const fields = [
+        document.getElementById("name"),
+        document.getElementById("roll"),
+        ...subjects.map(id => document.getElementById(id))
+    ];
+
+    let valid = true;
+
+    for (let i = 0; i < fields.length; i++) {
+        if (!validateField(fields[i])) {
+            valid = false;
+        }
+    }
+
+    return valid;
+}
+
+// Display student result
+function showResult(name, roll, marks, total, percentage, grade) {
+    let failed = false;
+
+    // Check whether any subject mark is below 35
+    for (let i = 0; i < marks.length; i++) {
+        if (marks[i] < 35) {
+            failed = true;
+        }
+    }
+
+    const status = failed ? "Fail" : "Pass";
+    const statusClass = failed ? "danger" : "success";
+
+    result.innerHTML = `
+        <div class="card border-${statusClass}">
+            <div class="card-header bg-${statusClass} text-white">
+                <h4>Student Result</h4>
+            </div>
+
+            <div class="card-body">
+                <p><strong>Name:</strong> ${escapeHTML(name)}</p>
+                <p><strong>Roll Number:</strong> ${escapeHTML(roll)}</p>
+                <p><strong>Total Marks:</strong> ${total} / 500</p>
+                <p><strong>Percentage:</strong> ${percentage.toFixed(2)}%</p>
+                <p><strong>Grade:</strong> ${grade}</p>
+
+                <h4 class="text-${statusClass}">
+                    Result: ${status}
+                </h4>
+            </div>
+        </div>
+    `;
+}
+
+// Safely display user-entered text
+function escapeHTML(value) {
+    return value.replace(/[&<>"']/g, character => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    })[character]);
+}
+
+// Submit event
+form.addEventListener("submit", function(event) {
+    event.preventDefault();
+
+    result.innerHTML = "";
+
+    if (!validateForm()) {
+        return;
+    }
+
+    const name = document.getElementById("name").value.trim();
+    const roll = document.getElementById("roll").value.trim();
+
+    const marks = [];
+
+    for (let i = 0; i < subjects.length; i++) {
+        marks.push(Number(document.getElementById(subjects[i]).value));
+    }
+
+    const total = calculateTotal(marks);
+    const percentage = (total / 500) * 100;
+    const grade = getGrade(percentage);
+
+    showResult(name, roll, marks, total, percentage, grade);
+});
+
+// Clear all validation styles and result on reset
+form.addEventListener("reset", function() {
+    setTimeout(function() {
+        const fields = form.querySelectorAll(".form-control");
+
+        fields.forEach(function(field) {
+            field.classList.remove("is-valid", "is-invalid");
+            field.nextElementSibling.textContent = "";
+        });
+
+        result.innerHTML = "";
+    }, 0);
+});
+
+// Validate fields when the user changes them
+form.querySelectorAll(".form-control").forEach(function(field) {
+    field.addEventListener("input", function() {
+        validateField(field);
+        result.innerHTML = "";
+    });
+});
